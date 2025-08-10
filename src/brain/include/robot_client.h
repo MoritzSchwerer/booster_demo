@@ -48,6 +48,8 @@ public:
     */
     int setVelocity(double x, double y, double theta, bool applyMinX=true, bool applyMinY=true, bool applyMinTheta=true);
 
+
+    int customWalk();
     int crabWalk(double angle, double speed);
 
     /**

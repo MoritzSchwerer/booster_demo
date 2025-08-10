@@ -1105,7 +1105,8 @@ NodeStatus Kick::onRunning()
         double speed = getInput<double>("speed_limit").value();
         _speed += 0.1; 
         speed = min(speed, _speed);
-        brain->client->crabWalk(angle, speed);
+	// brain->client->crabWalk(angle, speed);
+	brain->client->customWalk();
     }
 
     return NodeStatus::RUNNING;

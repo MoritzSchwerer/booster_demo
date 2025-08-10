@@ -147,6 +147,26 @@ int RobotClient::setVelocity(double x, double y, double theta, bool applyMinX, b
     return call(booster_interface::CreateMoveMsg(x, y, theta));
 }
 
+int RobotClient::customWalk() {
+	double yawOffset = brain->config->yawOffset;
+	double vxLimit = brain->config->vxLimit;
+	double vyLimit = brain->config->vyLimit;
+
+	double vx = brain->data->ball.posToRobot.x;
+ 	double vy = brain->data->ball.posToRobot.y;
+ 	double vtheta = brain->data->ball.yawToRobot * 4.0;
+
+	double linearFactor = 1 / (1 + exp(3 * (brain->data->ball.range * fabs(brain->data->ball.yawToRobot) - 3)));
+	vx *= linearFactor;
+	vy *= linearFactor;
+
+	vx = cap(vx, vxLimit, -1.0);
+	vy = cap(vy, vyLimit, -vyLimit);
+
+	return setVelocity(vx, vy, vtheta);
+}
+
+
 int RobotClient::crabWalk(double angle, double speed) {
     double vxFactor = brain->config->vxFactor;   // 用于调整 vx, vx *= vxFactor, 以补偿 x, y 方向的速度参数与实际速度比例的偏差, 使运动方向准确
     double yawOffset = brain->config->yawOffset; // 用于补偿定位角度的偏差
