@@ -342,7 +342,7 @@ NodeStatus Chase::tick()
     static string targetType = "direct"; 
     static double circleBackDir = 1.0; 
     double dirThreshold = M_PI / 2;
-    if (targetType == "direct") dirThreshold *= 1.2;
+    // if (targetType == "direct") dirThreshold *= 1.2;
 
 
     // 计算目标点

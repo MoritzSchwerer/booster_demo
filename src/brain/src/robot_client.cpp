@@ -157,7 +157,7 @@ int RobotClient::customWalk() {
  	double vtheta = brain->data->ball.yawToRobot;
     double vx = cos(vtheta);
     double vy = sin(vtheta);// * 0.5; // * 0.5;
-    vtheta *= 1.0;
+    vtheta *= 2.0;
 
     // double linearFactor = 1 / (1 + exp(3 * (brain->data->ball.range * fabs(brain->data->ball.yawToRobot) - 3)));
 	// vx *= linearFactor;
