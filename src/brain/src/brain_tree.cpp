@@ -638,7 +638,7 @@ NodeStatus GoToGoalBlockingPosition::tick() {
     
     else // goalie
     {
-        double center_goal_x = -fd.length;
+        double center_goal_x = -fd.length / 2;
         double center_goal_y = 0.0; 
         if (ballPos.y > 1.0)
         {
@@ -649,8 +649,8 @@ NodeStatus GoToGoalBlockingPosition::tick() {
             center_goal_y = -fd.goalWidth / 4.0;
         }
      
-        double goal_ball_x = center_goal_x - ballPos.x;
-        double goal_ball_y = center_goal_y - ballPos.y;
+        double goal_ball_x = center_goal_x + ballPos.x;
+        double goal_ball_y = center_goal_y + ballPos.y;
 
         double distance_goal_ball = norm(goal_ball_x,goal_ball_y);
 
