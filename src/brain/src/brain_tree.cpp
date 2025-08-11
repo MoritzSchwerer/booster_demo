@@ -610,19 +610,60 @@ NodeStatus GoToGoalBlockingPosition::tick() {
     string curRole = brain->tree->getEntry<string>("player_role");
 
     Pose2D targetPose;
-    targetPose.x = curRole == "striker" ? (std::max(- fd.length / 2.0 + distToGoalline, ballPos.x - 1.5))
-            : (- fd.length / 2.0 + distToGoalline);
-    if (ballPos.x + fd.length / 2.0 < distToGoalline) {
-        targetPose.y = curRole == "striker" ? (ballPos.y > 0 ? fd.goalWidth / 2.0 : -fd.goalWidth / 2.0)
-            : (ballPos.y > 0 ? fd.goalWidth / 4.0 : -fd.goalWidth / 4.0);
-    } else {
-        targetPose.y = ballPos.y * distToGoalline / (ballPos.x + fd.length / 2.0);
-        targetPose.y = curRole == "striker" ? (cap(targetPose.y, fd.goalWidth / 2.0, -fd.goalWidth / 2.0))
-            : (cap(targetPose.y, fd.penaltyAreaWidth/ 2.0, -fd.penaltyAreaWidth / 2.0));
+    // targetPose.x = curRole == "striker" ? (std::max(- fd.length / 2.0 + distToGoalline, ballPos.x - 1.5))
+    //         : (- fd.length / 2.0 + distToGoalline);
+    // if (ballPos.x + fd.length / 2.0 < distToGoalline) {
+    //     targetPose.y = curRole == "striker" ? (ballPos.y > 0 ? fd.goalWidth / 2.0 : -fd.goalWidth / 2.0)
+    //         : (ballPos.y > 0 ? fd.goalWidth / 4.0 : -fd.goalWidth / 4.0);
+    // } else {
+    //     targetPose.y = ballPos.y * distToGoalline / (ballPos.x + fd.length / 2.0);
+    //     targetPose.y = curRole == "striker" ? (cap(targetPose.y, fd.goalWidth / 2.0, -fd.goalWidth / 2.0))
+    //         : (cap(targetPose.y, fd.penaltyAreaWidth/ 2.0, -fd.penaltyAreaWidth / 2.0));
+    // }
+    
+    // striker
+    if (curRole == "striker")
+    {
+        targetPose.x = std::max(- fd.length / 2.0 + distToGoalline, ballPos.x - 1.5);
+        
+        if (ballPos.x + fd.length / 2.0 < distToGoalline)
+        {
+            targetPose.y = (ballPos.y > 0 ? fd.goalWidth / 2.0 : -fd.goalWidth / 2.0);
+        }
+        else
+        {
+            targetPose.y = ballPos.y * distToGoalline / (ballPos.x + fd.length / 2.0);
+            targetPose.y = cap(targetPose.y, fd.goalWidth / 2.0, -fd.goalWidth / 2.0);
+        }
+    }
+    
+    else // goalie
+    {
+        double center_goal_x = -fd.length;
+        double center_goal_y = 0.0; 
+        if (ballPos.y > 1.0)
+        {
+            center_goal_y = fd.goalWidth / 4.0;
+        }
+        else if (ballPos.y < -1.0)
+        {
+            center_goal_y = -fd.goalWidth / 4.0;
+        }
+     
+        double goal_ball_x = center_goal_x - ballPos.x;
+        double goal_ball_y = center_goal_y - ballPos.y;
+
+        double distance_goal_ball = norm(goal_ball_x,goal_ball_y);
+
+        double unit_goal_ball_x = goal_ball_x / distance_goal_ball;
+        double unit_goal_ball_y = goal_ball_y / distance_goal_ball;
+
+        targetPose.x = cap((unit_goal_ball_x * 0.5*distance_goal_ball), -1.0, -fd.length/2); 
+        targetPose.y = cap((unit_goal_ball_y * 0.5*distance_goal_ball),  fd.width/2, -fd.width/2);
     }
 
     double dist = norm(targetPose.x - robotPose.x, targetPose.y - robotPose.y);
-    if ( // 认为到达了目标位置
+    if ( // 认为到达了目标位置 -> believe that the target location has been reached
         dist < distTolerance
         && fabs(brain->data->ball.yawToRobot) < thetaTolerance
     ) {
