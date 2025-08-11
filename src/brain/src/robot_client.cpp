@@ -152,13 +152,16 @@ int RobotClient::customWalk() {
 	double vxLimit = brain->config->vxLimit;
 	double vyLimit = brain->config->vyLimit;
 
-	double vx = brain->data->ball.posToRobot.x;
- 	double vy = brain->data->ball.posToRobot.y;
- 	double vtheta = brain->data->ball.yawToRobot * 4.0;
+	// double vx = brain->data->ball.posToRobot.x;
+ 	// double vy = brain->data->ball.posToRobot.y;
+ 	double vtheta = brain->data->ball.yawToRobot;
+    double vx = cos(vtheta);
+    double vy = sin(vtheta);// * 0.5; // * 0.5;
+    vtheta *= 1.0;
 
-	double linearFactor = 1 / (1 + exp(3 * (brain->data->ball.range * fabs(brain->data->ball.yawToRobot) - 3)));
-	vx *= linearFactor;
-	vy *= linearFactor;
+    // double linearFactor = 1 / (1 + exp(3 * (brain->data->ball.range * fabs(brain->data->ball.yawToRobot) - 3)));
+	// vx *= linearFactor;
+	// vy *= linearFactor;
 
 	vx = cap(vx, vxLimit, -1.0);
 	vy = cap(vy, vyLimit, -vyLimit);

@@ -22,7 +22,7 @@ brain_node:
       ball_memory_timeout: 5.0 
       tm_ball_dist_threshold: 2.0 
       limit_near_ball_speed: false 
-      near_ball_speed_limit: 0.2 
+      near_ball_speed_limit: 1.0 
       near_ball_range: 3.0
       abort_kick_when_ball_moved: true 
       cooperation: 
@@ -78,7 +78,7 @@ brain_node:
         cam_fov_x: 90.0 
         cam_fov_y: 60.0 
     
-    game_control_ip: "192.168.1.110"
+    game_control_ip: "192.168.10.10"
 
     # for fun and debug
     sound:

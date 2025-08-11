@@ -331,6 +331,11 @@ NodeStatus Chase::tick()
     double theta_rb = brain->data->robotBallAngleToField;
     auto ballPos = brain->data->ball.posToField;
 
+    // NOTE: used for tangent target
+    double ballYaw = brain->data->ball.yawToRobot;
+    double robotYawToField = brain->data->robotPoseToField.theta;
+    double tangentDist = 1.0;
+
 
     double vx, vy, vtheta;
     Pose2D target_f, target_r; 
@@ -346,15 +351,44 @@ NodeStatus Chase::tick()
         targetType = "direct";
         target_f.x = ballPos.x - dist * cos(kickDir);
         target_f.y = ballPos.y - dist * sin(kickDir);
+    // } else {
+    //     targetType = "circle_back";
+    //     double cbDirThreshold = 0.0; 
+    //     cbDirThreshold -= 0.2 * circleBackDir; 
+    //     circleBackDir = toPInPI(theta_br - kickDir) > cbDirThreshold ? 1.0 : -1.0;
+    //     log(format("targetType = circle_back, circleBackDir = %.1f", circleBackDir));
+    //     double tanTheta = theta_br + circleBackDir * acos(min(1.0, safeDist/max(ballRange, 1e-5))); 
+    //     target_f.x = ballPos.x + safeDist * cos(tanTheta);
+    //     target_f.y = ballPos.y + safeDist * sin(tanTheta);
+    // }
     } else {
-        targetType = "circle_back";
-        double cbDirThreshold = 0.0; 
-        cbDirThreshold -= 0.2 * circleBackDir; 
-        circleBackDir = toPInPI(theta_br - kickDir) > cbDirThreshold ? 1.0 : -1.0;
-        log(format("targetType = circle_back, circleBackDir = %.1f", circleBackDir));
-        double tanTheta = theta_br + circleBackDir * acos(min(1.0, safeDist/max(ballRange, 1e-5))); 
-        target_f.x = ballPos.x + safeDist * cos(tanTheta);
-        target_f.y = ballPos.y + safeDist * sin(tanTheta);
+        Pose2D uniteToBall{
+            cos(ballYaw), sin(ballYaw), 0
+        };
+
+        Pose2D normVec1, normVec2;
+        normVec1.x = uniteY * tangentDist;
+        normVec1.y = -uniteX * tangentDist;
+
+        normVec2.x = -uniteY * tangentDist;
+        normVec2.y = uniteX * tangentDist;
+
+        Pose2D normVec1_f, normVec2_f;
+        normVec1_f.x = cos(robotYawToField) * normVec1.x - sin(robotYawToField) * normVec1.y;
+        normVec1_f.y = sin(robotYawToField) * normVec1.x + cos(robotYawToField) * normVec1.y;
+
+        normVec2_f.x = cos(robotYawToField) * normVec2.x - sin(robotYawToField) * normVec2.y;
+        normVec2_f.y = sin(robotYawToField) * normVec2.x + cos(robotYawToField) * normVec2.y;
+
+        target_f.x = ballPos.x;
+        target_f.y = ballPos.y;
+        if (normVec1_f.x > normVec2_f.x) {
+            target_f.x += normVec2_f.x;
+            target_f.y += normVec2_f.y;
+        } else {
+            target_f.x += normVec1_f.x;
+            target_f.y += normVec1_f.y;
+        }
     }
     target_r = brain->data->field2robot(target_f);
     brain->log->setTimeNow();
