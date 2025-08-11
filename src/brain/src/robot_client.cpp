@@ -1,5 +1,5 @@
 #include <cmath>
-#include <booster_internal/robot/b1/b1_loco_internal_api.hpp>
+// #include <booster_internal/robot/b1/b1_loco_internal_api.hpp>
 #include "brain.h"
 #include "robot_client.h"
 #include "booster_interface/message_utils.hpp"
@@ -51,21 +51,21 @@ int RobotClient::standUp()
 
 int RobotClient::walkMode()
 {
-    booster_interface::msg::BoosterApiReqMsg msg;
-    msg.api_id = static_cast<int64_t>(booster_internal::robot::b1::LocoInternalApiId::kEnableRobocupWalkMode);
-    nlohmann::json body;
-    msg.body = body.dump();
+    // booster_interface::msg::BoosterApiReqMsg msg;
+    // msg.api_id = static_cast<int64_t>(booster_internal::robot::b1::LocoInternalApiId::kEnableRobocupWalkMode);
+    // nlohmann::json body;
+    // msg.body = body.dump();
 
-    return call(msg);
+    return 0; // call(msg);
 }
 
 int RobotClient::robocupWalk()
 {
-    booster_interface::msg::BoosterApiReqMsg msg;
-    msg.api_id = static_cast<int64_t>(booster_internal::robot::b1::LocoInternalApiId::kEnableRobocupWalkMode);
-    nlohmann::json body;
-    msg.body = body.dump();
-    return call(msg);
+    // booster_interface::msg::BoosterApiReqMsg msg;
+    // msg.api_id = static_cast<int64_t>(booster_internal::robot::b1::LocoInternalApiId::kEnableRobocupWalkMode);
+    // nlohmann::json body;
+    // msg.body = body.dump();
+    return 0; // call(msg);
 }
 
 int RobotClient::enterDamping()

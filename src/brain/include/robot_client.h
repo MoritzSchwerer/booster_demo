@@ -7,7 +7,6 @@
 #include "booster_interface/srv/rpc_service.hpp"
 #include "booster_interface/msg/booster_api_req_msg.hpp"
 #include "booster_msgs/msg/rpc_req_msg.hpp"
-#include "booster_internal/robot/b1/b1_loco_internal_api.hpp"
 
 using namespace std;
 
