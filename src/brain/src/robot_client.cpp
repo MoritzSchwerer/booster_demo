@@ -166,7 +166,12 @@ int RobotClient::customWalk() {
 	vx = cap(vx, vxLimit, -1.0);
 	vy = cap(vy, vyLimit, -vyLimit);
 
-	return setVelocity(vx, vy, vtheta);
+    _smooth_vx = _smooth_vx * 0.7 + vx * 0.3;
+    _smooth_vy = _smooth_vy * 0.7 + vy * 0.3;
+    _smooth_vtheta = _smooth_vtheta * 0.7 + vtheta * 0.3;
+
+	return setVelocity(_smooth_vx, _smooth_vy, _smooth_vtheta);
+	// return setVelocity(vx, vy, vtheta);
 }
 
 

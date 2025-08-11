@@ -123,6 +123,7 @@ public:
 
     bool isStandingStill(double timeBuffer = 1000);
 
+    double _smooth_vx, _smooth_vy, _smooth_vtheta;
 private:
     int call(booster_interface::msg::BoosterApiReqMsg msg);
     rclcpp::Publisher<booster_msgs::msg::RpcReqMsg>::SharedPtr publisher;

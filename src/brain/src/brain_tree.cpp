@@ -332,7 +332,6 @@ NodeStatus Chase::tick()
     auto ballPos = brain->data->ball.posToField;
 
     // NOTE: used for tangent target
-    double ballYaw = brain->data->ball.yawToRobot;
     double robotYawToField = brain->data->robotPoseToField.theta;
     double tangentDist = 1.0;
 
@@ -367,11 +366,11 @@ NodeStatus Chase::tick()
         };
 
         Pose2D normVec1, normVec2;
-        normVec1.x = uniteY * tangentDist;
-        normVec1.y = -uniteX * tangentDist;
+        normVec1.x = uniteToBall.y * tangentDist;
+        normVec1.y = -uniteToBall.x * tangentDist;
 
-        normVec2.x = -uniteY * tangentDist;
-        normVec2.y = uniteX * tangentDist;
+        normVec2.x = -uniteToBall.y * tangentDist;
+        normVec2.y = uniteToBall.x * tangentDist;
 
         Pose2D normVec1_f, normVec2_f;
         normVec1_f.x = cos(robotYawToField) * normVec1.x - sin(robotYawToField) * normVec1.y;
@@ -948,6 +947,12 @@ NodeStatus StrikerDecide::tick() {
     {
         newDecision = "adjust";
         color = 0xFFFF00FF;
+    }
+
+    if (newDecision != "kick") {
+        brain->client->_smooth_vx = 0;
+        brain->client->_smooth_vy = 0;
+        brain->client->_smooth_vtheta = 0;
     }
 
     setOutput("decision_out", newDecision);
