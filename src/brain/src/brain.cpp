@@ -40,6 +40,7 @@ Brain::Brain() : rclcpp::Node("brain_node")
     declare_parameter<double>("robot.vy_limit", 0.4);
     declare_parameter<double>("robot.vtheta_limit", 1.0);
 
+    declare_parameter<bool>("strategy.play_style_offensive", true);
     declare_parameter<double>("strategy.ball_confidence_threshold", 50.0);   
     declare_parameter<double>("strategy.ball_memory_timeout", 3.0);
     declare_parameter<double>("strategy.tm_ball_dist_threshold", 3.0);

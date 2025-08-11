@@ -61,6 +61,7 @@ void BrainTree::init()
     REGISTER_BUILDER(MoveHead)
     REGISTER_BUILDER(CheckAndStandUp)
     REGISTER_BUILDER(Assist)
+    REGISTER_BUILDER(Winger)
 
     // 注册 Locator 相关的节点
     brain->registerLocatorNodes(factory);
@@ -777,6 +778,136 @@ NodeStatus Assist::tick() {
     return NodeStatus::SUCCESS;
 }
 
+NodeStatus Winger::tick() {
+    auto log = [=](string msg) {
+        brain->log->setTimeNow();
+        brain->log->log("debug/Winger", rerun::TextLog(msg));
+    };
+    log("ticked");
+
+    double distTolerance = getInput<double>("dist_tolerance").value();
+    double thetaTolerance = getInput<double>("theta_tolerance").value();
+    double distToGoalline = getInput<double>("dist_to_goalline").value();
+
+    auto fd = brain->config->fieldDimensions;
+    auto ballPos = brain->data->ball.posToField;
+    auto robotPose = brain->data->robotPoseToField;
+    string curRole = brain->tree->getEntry<string>("player_role");
+
+    ballFarInOurHalf = ballPos.x < (ballFarInOurHalf ? -2.0 : -3.0);
+
+    bool isSecondary = false; 
+    bool has2Assists = false;
+    int selfIdx = brain->config->playerId - 1;
+    for (int i = 0; i < HL_MAX_NUM_PLAYERS; i++) {
+        if (i == selfIdx) continue; 
+
+        auto tmStatus = brain->data->tmStatus[i];
+        if (!tmStatus.isAlive) continue; 
+        if (tmStatus.isLead) continue; 
+        if (tmStatus.role != "striker") continue; 
+
+        has2Assists = true;
+        log("2 assists found");
+        if (tmStatus.robotPoseToField.y > robotPose.y) {
+            log("i am secondary");
+            isSecondary = true; 
+        }
+    }
+    log(format("has2Assists: %d, isSecondary: %d", has2Assists, isSecondary));
+
+    if (ballFarInOurHalf) {
+        has2Assists = false;
+    }
+
+    // determine side
+    if (has2Assists) {
+        leftSide = isSecondary;
+    } else if (robotPose.x < ballPos.x) {
+        leftSide = robotPose.y > ballPos.y;
+    } else if (leftSide) {
+        if (ballPos.y < -fd.circleRadius) {
+            leftSide = false;
+        }
+    } else {
+        if (ballPos.y > fd.circleRadius) {
+            leftSide = true;
+        }
+    }
+
+    Pose2D targetPose;
+    if (ballFarInOurHalf && !isSecondary) {
+        targetPose.x = ballPos.x - 2.0;
+        targetPose.x = max(targetPose.x, -fd.length / 2.0 + distToGoalline); 
+        targetPose.y = ballPos.y * (targetPose.x + fd.length / 2.0) / (ballPos.x + fd.length / 2.0);
+    } else {
+        targetPose.x = isSecondary ? ballPos.x + 3.0 : ballPos.x + 3.0;
+        targetPose.x = min(targetPose.x, fd.length / 2.0 - distToGoalline); 
+        targetPose.y = ballPos.y * 1.2;
+    
+        if (fabs(targetPose.y) < fd.circleRadius) {
+            targetPose.y = (leftSide ? 1.0 : -1.0) * fd.circleRadius;
+        } else if (fabs(targetPose.y) > (fd.width / 2.0) - 0.5) {
+            targetPose.y = (leftSide ? 1.0 : -1.0) * ((fd.width / 2.0) - 0.5);
+        }
+    }
+
+
+    double dist = norm(targetPose.x - robotPose.x, targetPose.y - robotPose.y);
+    if ( 
+        dist < distTolerance
+        && fabs(brain->data->ball.yawToRobot) < thetaTolerance
+    ) {
+        brain->client->setVelocity(0, 0, 0);
+        return NodeStatus::SUCCESS;
+    }
+
+    double vx, vy, vtheta;
+    auto targetPose_r = brain->data->field2robot(targetPose);
+    double targetDir = atan2(targetPose_r.y, targetPose_r.x);
+    double distToObstacle = brain->distToObstacle(targetDir);
+
+    bool avoidObstacle;
+    brain->get_parameter("obstacle_avoidance.avoid_during_chase", avoidObstacle);
+    double oaSafeDist;
+    brain->get_parameter("obstacle_avoidance.chase_ao_safe_dist", oaSafeDist);
+
+    double tarDir = atan2(ballPos.y - brain->data->robotPoseToField.y, ballPos.x - brain->data->robotPoseToField.x);
+    tarDir += (left ? 1.0 : -1.0) * (M_PI / 8);
+    // double tarDir = (left ? -1.0 : 1.0) * (M_PI / 2);
+    double faceDir = brain->data->robotPoseToField.theta;
+    double tarDir_r = toPInPI(tarDir - faceDir); 
+
+    if (avoidObstacle && distToObstacle < oaSafeDist) {
+        log("avoid obstacle");
+        auto avoidDir = brain->calcAvoidDir(targetDir, oaSafeDist);
+        const double speed = 0.5;
+        vx = speed * cos(avoidDir);
+        vy = speed * sin(avoidDir);
+        vtheta = tarDir_r;
+    } else {
+        vx = targetPose_r.x;
+        vy = targetPose_r.y;
+        vtheta = tarDir_r;
+    }
+
+
+    double vxLimit, vyLimit;
+    getInput("vx_limit", vxLimit);
+    getInput("vy_limit", vyLimit);
+    if (ballFarInOurHalf && !isSecondary) {
+        vx = cap(vx, vxLimit, -1.0);
+    } else {
+        vx = cap(vx, 1.0, -vxLimit);
+    }
+    // vx = cap(vx, vxLimit, -vxLimit);
+    vy = cap(vy, vyLimit, -vyLimit);
+    
+
+    brain->client->setVelocity(vx, vy, vtheta, false, false, false);
+    return NodeStatus::SUCCESS;
+}
+
 NodeStatus Adjust::tick()
 {
     auto log = [=](string msg) { 
@@ -931,6 +1062,9 @@ NodeStatus StrikerDecide::tick() {
     const double goalpostMargin = 0.3; 
     bool angleGoodForKick = brain->isAngleGood(goalpostMargin, "kick");
 
+    bool offensiveStrategy;
+    brain->get_parameter("strategy.play_style_offensive", offensiveStrategy);
+
     bool avoidPushing;
     double kickAoSafeDist;
     brain->get_parameter("obstacle_avoidance.avoid_during_kick", avoidPushing);
@@ -963,7 +1097,7 @@ NodeStatus StrikerDecide::tick() {
         newDecision = "find";
         color = 0xFFFFFFFF;
     } else if (!brain->data->tmImLead) {
-        newDecision = "assist";
+        newDecision = offensiveStrategy ? "winger" : "assist";
         color = 0x00FFFFFF;
     } else if (ballRange > chaseRangeThreshold * (lastDecision == "chase" ? 0.9 : 1.0))
     {
@@ -1034,7 +1168,7 @@ NodeStatus GoalieDecide::tick()
         newDecision = "find";
         color = 0x0000FFFF;
     }
-    else if (brain->data->ball.posToField.x > 0 - static_cast<double>(lastDecision == "retreat"))
+    else if (brain->data->ball.posToField.x > (lastDecision == "retreat" ? -3 : -2))
     {
         newDecision = "retreat";
         color = 0xFF00FFFF;
@@ -1394,6 +1528,9 @@ NodeStatus GoToReadyPosition::tick()
     bool isKickoff = brain->tree->getEntry<bool>("gc_is_kickoff_side");
     auto fd = brain->config->fieldDimensions;
 
+    bool offensiveStrategy;
+    brain->get_parameter("strategy.play_style_offensive", offensiveStrategy);
+
 
     double tx = 0, ty = 0, ttheta = 0; 
     double longRangeThreshold = 1.0;
@@ -1408,34 +1545,74 @@ NodeStatus GoToReadyPosition::tick()
     double vthetaLimit = 1.3;
     bool avoidObstacle = true;
 
-    if (role == "striker" && isKickoff) {
-        tx = - max(fd.circleRadius, 1.5);
-        ty = 0;
-        if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2)
-        {
-            if (brain->isPrimaryStriker()) {
-                ty = 1.5;
+    if (role == "striker") {
+        if (offensiveStrategy) {
+            // offensive strategy
+            if (isKickoff) {
+                tx = - max(fd.circleRadius, 1.5);
+                ty = 0;
+                ttheta = 0;
+                if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2) {
+                    if (brain->isPrimaryStriker()) {
+                        ty = 0.75;
+                        ttheta = -M_PI / 8.0;
+                    } else {
+                        tx = -2.5;
+                        ty = -3.0;
+                    }
+                }
             } else {
-                ty = -1.5;
+                tx = -fd.circleRadius * 1.1;
+                ty = 0;
+                ttheta = 0;
+                if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2) {
+                    if (brain->isPrimaryStriker()) {
+                        tx = -3.0;
+                    } else {
+                        ty = -0.75;
+                    }
+                }
+            }
+        } else {
+            // defensive strategy
+            if (isKickoff) {
+                tx = - max(fd.circleRadius, 1.5);
+                ty = 0;
+                ttheta = 0;
+                if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2) {
+                    if (brain->isPrimaryStriker()) {
+                        ty = 0.75;
+                        ttheta = -M_PI / 8.0;
+                    } else {
+                        tx = -3.0;
+                        ty = -0.75;
+                    }
+                }
+            } else {
+                tx = -fd.circleRadius * 1.1;
+                ty = 0;
+                ttheta = 0;
+                if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2) {
+                    ty = brain->isPrimaryStriker() ? 0.75 : -0.75;
+                }
             }
         }
-        ttheta = 0;
-    } else if (role == "striker" && !isKickoff) {
-        tx = - fd.circleRadius * 1.0;
-        ty = 0;
-        if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2)
-        {
-            if (brain->isPrimaryStriker()) {
-                ty = 1.5;
-            } else {
-                ty = -1.5;
-            }
-        }
-        ttheta = 0;
     } else if (role == "goal_keeper") {
-        tx = -fd.length / 2.0 + fd.goalAreaLength;
-        ty = 0;
-        ttheta = 0;
+        if (isKickoff) {
+            tx = -fd.length / 2.0 + fd.goalAreaLength;
+            ty = 0;
+            ttheta = 0;
+        } else {
+            ttheta = 0;
+
+            if (offensiveStrategy) {
+                tx = -fd.circleRadius * 1.25;
+                ty = 0.75;
+            } else {
+                tx = -3.0;
+                ty = 0;
+            }
+        }
     }
 
     brain->client->moveToPoseOnField2(tx, ty, ttheta, longRangeThreshold, turnThreshold, vxLimit, vyLimit, vthetaLimit, distTolerance / 1.5, distTolerance / 1.5, thetaTolerance, avoidObstacle);

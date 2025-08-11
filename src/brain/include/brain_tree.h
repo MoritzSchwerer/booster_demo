@@ -471,6 +471,31 @@ private:
 };
 
 
+class Winger : public SyncActionNode
+{
+public:
+    Winger(const std::string &name, const NodeConfig &config, Brain *_brain) : SyncActionNode(name, config), brain(_brain) {}
+
+    static BT::PortsList providedPorts()
+    {
+        return {
+            InputPort<double>("dist_tolerance", 0.5, "dist tolerance, within which considered arrived."),
+            InputPort<double>("theta_tolerance", 0.5, "theta tolerance, winin which considered arrived."),
+            InputPort<double>("vx_limit", 0.1, "x speed limit"),
+            InputPort<double>("vy_limit", 0.1, "y speed limit"),
+            InputPort<double>("dist_to_goalline", 2.5, "机器人站在门前多少距离"),
+        };
+    }
+
+    BT::NodeStatus tick() override;
+
+private:
+    Brain *brain;
+    bool leftSide = false;
+    bool ballFarInOurHalf = false;
+};
+
+
 /**
  * @brief 设置机器人的速度
  *
