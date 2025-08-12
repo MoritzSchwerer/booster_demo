@@ -657,7 +657,7 @@ NodeStatus GoToGoalBlockingPosition::tick() {
         double unit_goal_ball_x = goal_ball_x / distance_goal_ball;
         double unit_goal_ball_y = goal_ball_y / distance_goal_ball;
 
-        targetPose.x = cap((unit_goal_ball_x * 0.5*distance_goal_ball), -1.0, -fd.length/2); 
+        targetPose.x = cap((unit_goal_ball_x * 0.5*distance_goal_ball), -3.0, -fd.length/2); 
         targetPose.y = cap((unit_goal_ball_y * 0.5*distance_goal_ball),  fd.width/2, -fd.width/2);
     }
 

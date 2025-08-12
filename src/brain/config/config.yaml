@@ -57,7 +57,7 @@ brain_node:
       min_marker_count: 5
       max_residual: 0.3 
 
-    enable_com: false 
+    enable_com: true
 
     rerunLog:
       enable_tcp: false 

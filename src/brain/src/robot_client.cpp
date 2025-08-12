@@ -170,8 +170,8 @@ int RobotClient::customWalk() {
     _smooth_vy = _smooth_vy * 0.7 + vy * 0.3;
     _smooth_vtheta = _smooth_vtheta * 0.7 + vtheta * 0.3;
 
-	return setVelocity(_smooth_vx, _smooth_vy, _smooth_vtheta);
-	// return setVelocity(vx, vy, vtheta);
+	// return setVelocity(_smooth_vx, _smooth_vy, _smooth_vtheta);
+	return setVelocity(vx, vy, vtheta);
 }
 
 
