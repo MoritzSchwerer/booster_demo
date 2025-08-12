@@ -1414,19 +1414,19 @@ NodeStatus GoToReadyPosition::tick()
         if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2)
         {
             if (brain->isPrimaryStriker()) {
-                ty = 1.5;
+                ty = 0.0;
             } else {
                 ty = -1.5;
             }
         }
         ttheta = 0;
     } else if (role == "striker" && !isKickoff) {
-        tx = - fd.circleRadius * 1.0;
+        tx = - fd.circleRadius * 1.25;
         ty = 0;
         if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2)
         {
             if (brain->isPrimaryStriker()) {
-                ty = 1.5;
+                ty = 0.0;
             } else {
                 ty = -1.5;
             }

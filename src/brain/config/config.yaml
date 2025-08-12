@@ -18,6 +18,7 @@ brain_node:
       vtheta_limit: 1.2 
 
     strategy:
+      play_style_offensive: false
       ball_confidence_threshold: 50.0 
       ball_memory_timeout: 5.0 
       tm_ball_dist_threshold: 2.0 
