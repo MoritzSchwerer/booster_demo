@@ -657,7 +657,7 @@ NodeStatus GoToGoalBlockingPosition::tick() {
         double unit_goal_ball_x = goal_ball_x / distance_goal_ball;
         double unit_goal_ball_y = goal_ball_y / distance_goal_ball;
 
-        targetPose.x = cap((unit_goal_ball_x * 0.5*distance_goal_ball), -3.0, -fd.length/2); 
+        targetPose.x = cap((unit_goal_ball_x * 0.5*distance_goal_ball), -3.0, -fd.length/2 + 0.3); 
         targetPose.y = cap((unit_goal_ball_y * 0.5*distance_goal_ball),  fd.width/2, -fd.width/2);
     }
 
@@ -811,6 +811,8 @@ NodeStatus Adjust::tick()
     double deltaDir = toPInPI(kickDir - dir_rb_f);
     double ballRange = brain->data->ball.range;
     double ballYaw = brain->data->ball.yawToRobot;
+    // ballYaw = atan2(brain->data->ball.posToRobot.y - 0.10, brain->data->ball.posToRobot.x);
+
     // double st = cap(fabs(deltaDir), st_far, st_near);
     double st = st_far; 
     double R = ballRange; 
@@ -822,6 +824,14 @@ NodeStatus Adjust::tick()
     if (fabs(deltaDir) * R < NEAR_THRESHOLD) {
         log("use near speed");
         st = st_near;
+        // st = st_near * max(fabs(deltaDir), (M_PI / 2)) / (M_PI / 2);
+        if (fabs(deltaDir) < M_PI / 4) {
+            st = 0.2;
+
+        }
+        // if (st < 0.2) {
+        //     st = 0.2;
+        // }
         // sr = 0.;
         // vxLimit = 0.1;
     }
@@ -921,6 +931,7 @@ NodeStatus StrikerDecide::tick() {
     getInput("position", position);
 
     double kickDir = brain->data->kickDir;
+    // double kickDir = atan2(brain->data->ball.posToField.y, brain->data->ball.posToField.x + brain->config->fieldDimensions.length / 2);
     double dir_rb_f = brain->data->robotBallAngleToField; 
     auto ball = brain->data->ball;
     double ballRange = ball.range;
@@ -950,7 +961,8 @@ NodeStatus StrikerDecide::tick() {
         deltaDir * lastDeltaDir <= 0 
         && fabs(deltaDir) < M_PI / 6
         && dt < 100;
-    reachedKickDir = reachedKickDir || fabs(deltaDir) < 0.1;
+    reachedKickDir = reachedKickDir || fabs(deltaDir) < 0.2;
+    // reachedKickDir = fabs(deltaDir) < 0.1;
     timeLastTick = now;
     lastDeltaDir = deltaDir;
 
@@ -1414,19 +1426,19 @@ NodeStatus GoToReadyPosition::tick()
         if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2)
         {
             if (brain->isPrimaryStriker()) {
-                ty = 1.5;
+                ty = 0.0;
             } else {
                 ty = -1.5;
             }
         }
         ttheta = 0;
     } else if (role == "striker" && !isKickoff) {
-        tx = - fd.circleRadius * 1.0;
+        tx = - fd.circleRadius * 1.35;
         ty = 0;
         if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2)
         {
             if (brain->isPrimaryStriker()) {
-                ty = 1.5;
+                ty = 0.0;
             } else {
                 ty = -1.5;
             }

@@ -152,18 +152,21 @@ int RobotClient::customWalk() {
 	double vxLimit = brain->config->vxLimit;
 	double vyLimit = brain->config->vyLimit;
 
-	// double vx = brain->data->ball.posToRobot.x;
- 	// double vy = brain->data->ball.posToRobot.y;
+	double x = brain->data->ball.posToRobot.x;
+ 	double y = brain->data->ball.posToRobot.y;
+    double vx = x;
+    double vy = y;
  	double vtheta = brain->data->ball.yawToRobot;
-    double vx = cos(vtheta);
-    double vy = sin(vtheta);// * 0.5; // * 0.5;
+    vx = cos(vtheta) * 1.2;
+    vy = sin(vtheta);// * 0.5; // * 0.5;
     vtheta *= 2.0;
 
     // double linearFactor = 1 / (1 + exp(3 * (brain->data->ball.range * fabs(brain->data->ball.yawToRobot) - 3)));
 	// vx *= linearFactor;
 	// vy *= linearFactor;
 
-	vx = cap(vx, vxLimit, -1.0);
+	// vx = cap(vx, vxLimit, -1.0);
+	vx = cap(vx, 1.2, -1.0);
 	vy = cap(vy, vyLimit, -vyLimit);
 
     _smooth_vx = _smooth_vx * 0.7 + vx * 0.3;
@@ -311,7 +314,7 @@ int RobotClient::moveToPoseOnField2(double tx, double ty, double ttheta, double 
     static bool isBacking = false;
     static rclcpp::Time timeEndAvoid = brain->get_clock()->now();
     static double avoidDir = 1.0; // 1.0 for turn left, -1.0 for turn right
-    const double SAFE_DIST = brain->config->safeDistance;
+    const double SAFE_DIST = brain->tree->getEntry<string>("player_role") == "goal_keeper" ? 1.0 : brain->config->safeDistance;
     const double AVOID_SECS = brain->config->avoidSecs;
 
     
@@ -430,7 +433,7 @@ int RobotClient::moveToPoseOnField2(double tx, double ty, double ttheta, double 
             if (distToObstacle < SAFE_DIST) {
                 vx = 0.0;
                 vy = 0.0;
-                vtheta = tarDir_r;
+                // vtheta = tarDir_r;
             }
         }
     }

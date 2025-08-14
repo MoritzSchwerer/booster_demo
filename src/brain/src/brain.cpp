@@ -307,6 +307,9 @@ void Brain::tick()
     handleCooperation();
 
     tree->tick();
+    double ballX = data->ball.posToRobot.x;
+    double ballY = data->ball.posToRobot.y;
+    RCLCPP_INFO_STREAM(get_logger(), "Ball x: " << ballX << ", Ball y: " << ballY);
 }
 
 void Brain::handleSpecialStates() {
@@ -1986,6 +1989,11 @@ vector<GameObject> Brain::getGameObjects(const vision_interface::msg::Detections
         // 不用深度测距, 直接用投影距离
         gObj.posToRobot.x = obj.position_projection[0];
         gObj.posToRobot.y = obj.position_projection[1];
+        
+        // very precise calculated offset
+        if (gObj.label == "Ball") {
+            gObj.posToRobot.y -= 0.117325;
+        }
 
         // 计算角度
         gObj.range = norm(gObj.posToRobot.x, gObj.posToRobot.y);
