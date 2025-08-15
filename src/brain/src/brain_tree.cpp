@@ -335,6 +335,10 @@ NodeStatus Chase::tick()
     double robotYawToField = brain->data->robotPoseToField.theta;
     double tangentDist = 1.0;
 
+    if (fabs(robotYawToField) > 3 * M_PI / 4) {
+        vxLimit = 1.2;
+    }
+
 
     double vx, vy, vtheta;
     Pose2D target_f, target_r; 
@@ -964,16 +968,21 @@ NodeStatus StrikerDecide::tick() {
     log(format("ballRange: %.2f, ballYaw: %.2f, ballX:%.2f, ballY: %.2f kickDir: %.2f, dir_rb_f: %.2f, angleGoodForKick: %d",
         ballRange, ballYaw, ballX, ballY, kickDir, dir_rb_f, angleGoodForKick));
 
+    auto fd = brain->config->fieldDimensions;
+    double p0 = -fd.length / 2 + fd.length / 3;
+    double p1 = -fd.length / 2 + 2 * fd.length / 3;
+    double rangeFactor = cap((ball.posToField.x - p0) / (p1 - p0), 1.0, 0.0);
+    double kickDirRange = rangeFactor * 0.2 + (1.0 - rangeFactor) * 0.5;
     
     double deltaDir = toPInPI(kickDir - dir_rb_f);
     auto now = brain->get_clock()->now();
     auto dt = brain->msecsSince(timeLastTick);
-    bool reachedKickDir = 
-        deltaDir * lastDeltaDir <= 0 
-        && fabs(deltaDir) < M_PI / 6
-        && dt < 100;
-    reachedKickDir = reachedKickDir || fabs(deltaDir) < 0.2;
-    // reachedKickDir = fabs(deltaDir) < 0.1;
+    // bool reachedKickDir = 
+    //     deltaDir * lastDeltaDir <= 0 
+    //     && fabs(deltaDir) < M_PI / 6
+    //     && dt < 100;
+    // reachedKickDir = reachedKickDir || fabs(deltaDir) < kickDirRange;
+    bool reachedKickDir = fabs(deltaDir) < kickDirRange;
     timeLastTick = now;
     lastDeltaDir = deltaDir;
 
@@ -1444,17 +1453,19 @@ NodeStatus GoToReadyPosition::tick()
         }
         ttheta = 0;
     } else if (role == "striker" && !isKickoff) {
-        tx = - fd.circleRadius * 1.35;
+        tx = - fd.circleRadius * 1.50;
         ty = 0;
+        ttheta = 0;
         if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2)
         {
             if (brain->isPrimaryStriker()) {
                 ty = 0.0;
             } else {
-                ty = -1.5;
+                ty = -2.0;
+                tx -= 2.0;
+                ttheta = M_PI / 3;
             }
         }
-        ttheta = 0;
     } else if (role == "goal_keeper") {
         tx = -fd.length / 2.0 + fd.goalAreaLength;
         ty = 0;

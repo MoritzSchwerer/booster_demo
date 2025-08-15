@@ -26,7 +26,7 @@ brain_node:
       near_ball_range: 3.0
       abort_kick_when_ball_moved: true 
       cooperation: 
-        enable_role_switch: false 
+        enable_role_switch: true 
         ball_control_cost_threshold: 20.0 
 
     obstacle_avoidance:
@@ -78,7 +78,7 @@ brain_node:
         cam_fov_x: 90.0 
         cam_fov_y: 60.0 
     
-    game_control_ip: "192.168.2.2"
+    game_control_ip: "192.168.8.2"
 
     # for fun and debug
     sound:
