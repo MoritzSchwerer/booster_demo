@@ -486,13 +486,15 @@ NodeStatus GoToFreekickPosition::onRunning() {
     auto ballPos = brain->data->ball.posToField;
     auto robotPose = brain->data->robotPoseToField;
 
+    double offset = 0.05;
+
     if (side == "attack") {
-        double targetDir = brain->data->kickDir;
+       double targetDir = brain->data->kickDir;
        double dist;
        getInput("attack_dist", dist);
 
-       targetPose.x = ballPos.x - dist * cos(targetDir);
-       targetPose.y = ballPos.y - dist * sin(targetDir);
+       targetPose.x = ballPos.x - dist * cos(targetDir) - sin(targetDir) * offset;
+       targetPose.y = ballPos.y - dist * sin(targetDir) + cos(targetDir) * offset;
        targetPose.theta = targetDir;
 
         if (brain->config->numOfPlayers == 3 && brain->data->liveCount >= 2)
@@ -540,12 +542,20 @@ NodeStatus GoToFreekickPosition::onRunning() {
     }
 
     if (!brain->get_parameter("obstacle_avoidance.enable_freekick_avoid").as_bool() || dist < 1.0 || _isInFinalAdjust) {
+       // double a_dist;
+       // getInput("attack_dist", a_dist);
+
         _isInFinalAdjust = true; 
         auto targetPose_r = brain->data->field2robot(targetPose);
 
         double vx = targetPose_r.x;
         double vy = targetPose_r.y;
-        double vtheta = brain->data->ball.yawToRobot * 4.0; 
+        double vtheta;
+        // if (side == "attack") {
+        //     vtheta = (brain->data->ball.yawToRobot + atan2(offset, a_dist)) * 4.0;  
+        // } else {
+        vtheta = brain->data->ball.yawToRobot * 4.0;  
+        // }
 
         double linearFactor = 1 / (1 + exp(3 * (brain->data->ball.range * fabs(brain->data->ball.yawToRobot)) - 3)); 
         vx *= linearFactor;
@@ -621,44 +631,45 @@ NodeStatus GoToGoalBlockingPosition::tick() {
     // }
     
     // striker
-    if (curRole == "striker")
-    {
+    if (curRole == "striker") {
         targetPose.x = std::max(- fd.length / 2.0 + distToGoalline, ballPos.x - 1.5);
         
-        if (ballPos.x + fd.length / 2.0 < distToGoalline)
-        {
+        if (ballPos.x + fd.length / 2.0 < distToGoalline) {
             targetPose.y = (ballPos.y > 0 ? fd.goalWidth / 2.0 : -fd.goalWidth / 2.0);
         }
-        else
-        {
+        else {
             targetPose.y = ballPos.y * distToGoalline / (ballPos.x + fd.length / 2.0);
             targetPose.y = cap(targetPose.y, fd.goalWidth / 2.0, -fd.goalWidth / 2.0);
         }
     }
     
-    else // goalie
-    {
-        double center_goal_x = -fd.length / 2;
-        double center_goal_y = 0.0; 
-        if (ballPos.y > 1.0)
-        {
-            center_goal_y = fd.goalWidth / 4.0;
+    else { // goalie
+        if (brain->data->realGameSubState == "PENALTYSHOOT") {
+            targetPose.x = -fd.length/2 - 0.1;
+            targetPose.y =  0.0;
+        } else {
+            double center_goal_x = -fd.length / 2;
+            double center_goal_y = 0.0; 
+            if (ballPos.y > 1.0)
+            {
+                center_goal_y = fd.goalWidth / 4.0;
+            }
+            else if (ballPos.y < -1.0)
+            {
+                center_goal_y = -fd.goalWidth / 4.0;
+            }
+         
+            double goal_ball_x = center_goal_x + ballPos.x;
+            double goal_ball_y = center_goal_y + ballPos.y;
+    
+            double distance_goal_ball = norm(goal_ball_x,goal_ball_y);
+    
+            double unit_goal_ball_x = goal_ball_x / distance_goal_ball;
+            double unit_goal_ball_y = goal_ball_y / distance_goal_ball;
+    
+            targetPose.x = cap((unit_goal_ball_x * 0.5*distance_goal_ball), -3.0, -fd.length/2 + 0.3); 
+            targetPose.y = cap((unit_goal_ball_y * 0.5*distance_goal_ball),  fd.width/2, -fd.width/2);
         }
-        else if (ballPos.y < -1.0)
-        {
-            center_goal_y = -fd.goalWidth / 4.0;
-        }
-     
-        double goal_ball_x = center_goal_x + ballPos.x;
-        double goal_ball_y = center_goal_y + ballPos.y;
-
-        double distance_goal_ball = norm(goal_ball_x,goal_ball_y);
-
-        double unit_goal_ball_x = goal_ball_x / distance_goal_ball;
-        double unit_goal_ball_y = goal_ball_y / distance_goal_ball;
-
-        targetPose.x = cap((unit_goal_ball_x * 0.5*distance_goal_ball), -3.0, -fd.length/2 + 0.3); 
-        targetPose.y = cap((unit_goal_ball_y * 0.5*distance_goal_ball),  fd.width/2, -fd.width/2);
     }
 
     double dist = norm(targetPose.x - robotPose.x, targetPose.y - robotPose.y);

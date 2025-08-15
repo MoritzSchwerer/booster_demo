@@ -1227,6 +1227,14 @@ void Brain::gameControlCallback(const game_controller_interface::msg::GameContro
             gameSubStateType = "NONE";
             data->realGameSubState = "NONE";
             break;
+        case 1:
+            gameSubStateType = "FREE_KICK";
+            data->realGameSubState = "PENALTYSHOOT";
+            break;
+        case 2:
+            gameSubStateType = "NONE";
+            data->realGameSubState = "OVERTIME";
+            break;
         case 3:
             gameSubStateType = "TIMEOUT"; // 包含两队 timeout 和 裁判 timeout
             data->realGameSubState = "TIMEOUT";
